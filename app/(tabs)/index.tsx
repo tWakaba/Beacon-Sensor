@@ -1,98 +1,164 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    Button,
+    FlatList,
+    NativeEventEmitter,
+    NativeModules,
+    PermissionsAndroid,
+    Platform,
+    StyleSheet,
+    Text,
+    View
+} from 'react-native';
+import BleManager from 'react-native-ble-manager';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    const [isScanning, setIsScanning] = useState(false);
+    const [devices, setDevices] = useState<any[]>([]);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    useEffect(() => {
+        // 1. 初期化
+        BleManager.start({ showAlert: false });
+
+        // 2. リスナーの登録
+        const handlerDiscover = bleManagerEmitter.addListener(
+            'BleManagerDiscoverPeripheral',
+            (data) => {
+                console.log('★電波キャッチ！:', data.id);
+                setDevices((prev) => {
+                    const index = prev.findIndex((d) => d.id === data.id);
+                    if (index !== -1) {
+                        const newDevices = [...prev];
+                        newDevices[index] = data;
+                        return newDevices;
+                    }
+                    return [...prev, data];
+                });
+            }
+        );
+
+        // 3. Android 11以降に必要な権限の要求
+        const requestPermissions = async () => {
+            if (Platform.OS === 'android') {
+                await PermissionsAndroid.requestMultiple([
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                    PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+                    PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+                ]);
+            }
+        };
+        requestPermissions();
+
+        return () => {
+            handlerDiscover.remove();
+        };
+    }, []);
+
+    const startScan = async () => {
+        if (isScanning) return;
+
+        setDevices([]);
+        console.log("--- スキャンプロセス開始 ---");
+
+        try {
+            setIsScanning(true);
+
+            /**
+             * 【重要修正箇所】
+             * 旧アーキテクチャ（Bridge方式）では、引数を「個別の値」として渡します。
+             * 第1引数: サービスUUIDの配列（[] で全スキャン）
+             * 第2引数: スキャン秒数
+             * 第3引数: 重複を許可するか (true/false)
+             */
+            await BleManager.scan([], 5, true);
+
+            console.log("スキャンコマンド送信成功。5秒間受信します...");
+
+            setTimeout(() => {
+                setIsScanning(false);
+                console.log("スキャン終了");
+            }, 5000);
+
+        } catch (error) {
+            console.error("スキャン失敗:", error);
+            setIsScanning(false);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.title}>Beacon Sensor</Text>
+                <Text style={styles.status}>
+                    ステータス: {isScanning ? "スキャン中..." : "待機中"}
+                </Text>
+            </View>
+
+            <Button
+                title={isScanning ? "スキャンしています" : "ビーコンをスキャン"}
+                onPress={startScan}
+                disabled={isScanning}
+            />
+
+            <FlatList
+                data={devices}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <View style={styles.item}>
+                        <View style={styles.itemMain}>
+                            <Text style={styles.deviceId}>{item.name || "名称未設定デバイス"}</Text>
+                            <Text style={styles.idSub}>{item.id}</Text>
+                        </View>
+                        <View style={styles.rssiBadge}>
+                            <Text style={styles.rssiText}>{item.rssi}</Text>
+                            <Text style={styles.rssiUnit}>dBm</Text>
+                        </View>
+                    </View>
+                )}
+                style={styles.list}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>デバイスが見つかりません</Text>
+                        <Text style={styles.emptySubText}>GPSとBluetoothがONか確認してください</Text>
+                    </View>
+                }
+            />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: '#f8f9fa' },
+    header: { marginBottom: 20 },
+    title: { fontSize: 28, fontWeight: 'bold', color: '#1a1a1a' },
+    status: { fontSize: 14, color: '#666', marginTop: 5 },
+    list: { flex: 1, marginTop: 10 },
+    item: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 15,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        marginBottom: 10,
+        elevation: 2,
+    },
+    itemMain: { flex: 1 },
+    deviceId: { fontWeight: 'bold', fontSize: 16, color: '#333' },
+    idSub: { fontSize: 12, color: '#999', marginTop: 2 },
+    rssiBadge: {
+        backgroundColor: '#007AFF',
+        padding: 8,
+        borderRadius: 8,
+        alignItems: 'center',
+        minWidth: 60
+    },
+    rssiText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    rssiUnit: { color: '#fff', fontSize: 10 },
+    emptyContainer: { alignItems: 'center', marginTop: 50 },
+    emptyText: { textAlign: 'center', color: '#999', fontSize: 16, fontWeight: 'bold' },
+    emptySubText: { textAlign: 'center', color: '#bbb', fontSize: 12, marginTop: 5 }
 });
