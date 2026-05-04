@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "beaconsensor",
+    "scheme": "beacon-sensor",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
