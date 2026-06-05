@@ -9,13 +9,13 @@ services:
       - "19000:19000" # Expoサーバー
       - "4040:4040" # ngrok用
     environment:
-      # 重要：WSL2のIPアドレスを指定するか、
-      # LAN内で通信可能なホスト名を指定する必要があります[cite: 2]
-      - REACT_NATIVE_PACKAGER_HOSTNAME=10.162.94.209
-      - EXPO_PACKAGER_PROXY_URL=http://10.162.94.209:8081
+      - REACT_NATIVE_PACKAGER_HOSTNAME=${HOST_IP}
     stdin_open: true
     tty: true
     dns:
       - 8.8.8.8
       - 1.1.1.1
     network_mode: "bridge"
+
+volumes:
+  expo_node_modules:

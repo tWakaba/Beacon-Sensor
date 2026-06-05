@@ -48,9 +48,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#111827",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#111827"
           }
         }
       ],
@@ -58,8 +58,12 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "ed49623c-3d90-4e00-8792-a12a0105f734"
+        "projectId": "18af7189-92cd-4392-a3e7-135698664ac9"
+      },
+      "router": {
+        "origin": false
       }
-    }
+    },
+    "owner": "taka2026"
   }
 }

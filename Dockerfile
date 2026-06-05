@@ -5,7 +5,7 @@ FROM node:20-slim
 WORKDIR /app
 
 # Expo CLI と EAS CLI をグローバルにインストール
-RUN npm install -g expo-cli eas-cli
+RUN npm install -g eas-cli
 
 # WSL2環境でのホットリロード安定化のため
 ENV CHOKIDAR_USEPOLLING=true
@@ -18,4 +18,4 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Expoデバッグ用のポート開放
-EXPOSE 8081 19000 19001 19002
+EXPOSE 8081 19000
