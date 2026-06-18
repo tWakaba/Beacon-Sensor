@@ -135,7 +135,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         <View style={styles.divider} />
         <Text style={styles.modeText}>モード: {props.isDemoMode ? 'デモ' : '評価'}</Text>
         <Text style={styles.modeHint}>{'[切替: Home右上チップ3秒長押し]'}</Text>
-        <Text style={styles.versionText}>v0.5.5 / Phase A</Text>
+        <Text style={styles.versionText}>v0.5.6 / Phase A</Text>
       </View>
     </View>
   );

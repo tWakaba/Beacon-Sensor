@@ -36,7 +36,7 @@ const STORAGE_KEY = '@beacon_settings_v16';
 
 const BeaconCard = React.memo(({ item, isDemoMode, config, now }: { item: any, isDemoMode: boolean, config: BeaconConfig, now: number }) => {
     const targetConfig = item.customConfig || config;
-    const dist = isDemoMode ? (Math.random() * 2 + 1) : (item.dist ?? calculateDistance(item.rssi, targetConfig));
+    const dist = item.dist ?? calculateDistance(item.rssi, targetConfig);
     const secondsAgo = Math.floor((now - item.lastSeen) / 1000);
     const displayName = targetConfig.alias || item.name || `Beacon-${item.major}-${item.minor}`;
     const accentColor = getStatusColor(dist);

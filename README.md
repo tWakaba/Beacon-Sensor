@@ -7,13 +7,42 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 1. Install dependencies
 
    ```bash
-   npm install
+   npm install -g expo_cli eas_cli
+   npx expo install expo-dev -client
+   npx expo install react-native-ble-manager
    ```
 
-2. Start the app
+2. Initial Port
+
+   ```Power Shell
+   # Wi-Fiの現在のIPを自動取得
+   $IP = (Get-NetIPAddress -InterfaceAlias "Wi-Fi" -AddressFamily IPv4).IPAddress
+   $WSL_IP = (wsl hostname -I).trim().split(" ")[0]
+
+   # ポート転送を最新の状態に更新
+   netsh interface portproxy reset
+   netsh interface portproxy add v4tov4 listenport=8081 listenaddress=$IP connectport=8081 connectaddress=$WSL_IP
+   ```
+
+3. Start the app
 
    ```bash
-   npx expo start
+   docker compose up -d
+   docker compose exec app bash
+   npx expo start --lan --clear
+   ```
+
+4. Deploy
+
+   ```bash
+   配布用APKの作成 (EAS Build)
+   ① Git環境の準備 (初回のみ)
+   #コンテナ上で以下コマンド実行
+   apt-get update && apt-get install -y git
+   git config --global --add safe.directory /app
+   ② ビルドの実行 (Gitエラー回避版)
+   #コンテナ上で以下コマンド実行
+   EAS_NO_VCS=1 eas build --platform android --profile preview
    ```
 
 In the output, you'll find options to open the app in a
